@@ -1,6 +1,6 @@
 import { hasAnalyticsConsent } from '@/lib/cookie-consent'
 
-const HEARTBEAT_INTERVAL = 30000 // 30 seconds
+const HEARTBEAT_INTERVAL = 15000 // 15 seconds
 const FLUSH_INTERVAL = 10000 // 10 seconds
 const MAX_BATCH_SIZE = 20
 const SESSION_TIMEOUT = 30 * 60 * 1000 // 30 minutes
@@ -88,6 +88,9 @@ class AnalyticsTracker {
       timestamp: Date.now(),
     })
 
+    // Fire immediate heartbeat so user shows as "live" right away, then flush it
+    this.pushEvent({ type: 'heartbeat', url: window.location.pathname, timestamp: Date.now() })
+    this.flush()
     this.startHeartbeat()
     this.startFlushTimer()
   }
