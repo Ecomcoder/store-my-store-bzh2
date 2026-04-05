@@ -1,29 +1,43 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
 
 /**
  * Element picker listener for admin element selection
  *
  * Listens for postMessage from parent (admin dashboard) to activate element picker mode.
  * When activated, highlights elements on hover and sends selected element data back.
- * Also sends navigation updates to parent for URL tracking.
  */
 export function ElementPickerListener() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  // Send navigation updates to parent
   useEffect(() => {
-    if (window.parent === window) return; // Not in iframe
+    // Send navigation updates to parent on route changes
+    if (window.parent !== window) {
+      const sendNavigationUpdate = () => {
+        const path = window.location.pathname + window.location.search;
+        window.parent.postMessage({
+          type: 'NAVIGATION_CHANGE',
+          path,
+        }, '*');
+      };
 
-    const path = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
-    window.parent.postMessage({
-      type: 'NAVIGATION_CHANGE',
-      path,
-    }, '*');
-  }, [pathname, searchParams]);
+      // Send initial path
+      sendNavigationUpdate();
+
+      // Listen for popstate (back/forward)
+      window.addEventListener('popstate', sendNavigationUpdate);
+
+      // Intercept link clicks for Next.js navigation
+      const handleClick = () => {
+        setTimeout(sendNavigationUpdate, 100);
+      };
+      document.addEventListener('click', handleClick);
+
+      return () => {
+        window.removeEventListener('popstate', sendNavigationUpdate);
+        document.removeEventListener('click', handleClick);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     let isActive = false;
